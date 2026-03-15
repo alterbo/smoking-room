@@ -56,23 +56,31 @@
     const burnTextStep = 20;
     const burnFontSize = 20;
     const smokeSpacing = 0.026;
+    const MAX_PARTICLES = 100;
+    const HEX: string[] = Array.from({ length: 256 }, (_, i) => i.toString(16).padStart(2, '0').toUpperCase());
+    const GRAY_HEX: string[] = HEX.map(h => `#${h}${h}${h}`);
 
     // No-anim: show all blocks instantly on click, nothing in between
     $: burnActiveCountNow = sceneState === 'smoking'
         ? (animationsEnabled ? burnActiveCount(smokingElapsedMs) : burnBlocksMax)
         : 0;
 
+    // Restart animation loop when animations are re-enabled while loop is stopped
+    $: if (animationsEnabled && !frameId) {
+        idleStartedAt = performance.now();
+        startLoop();
+    }
+
     function clamp(value: number, min: number, max: number): number {
         return Math.min(max, Math.max(min, value));
     }
 
     function toHex(value: number): string {
-        return clamp(Math.round(value), 0, 255).toString(16).padStart(2, '0').toUpperCase();
+        return HEX[clamp(Math.round(value), 0, 255)];
     }
 
     function grayHex(value: number): string {
-        const hex = toHex(value);
-        return `#${hex}${hex}${hex}`;
+        return GRAY_HEX[clamp(Math.round(value), 0, 255)];
     }
 
     function initBurnBlocks(): BurnBlock[] {
@@ -81,27 +89,6 @@
             flickerPhase: Math.random() * Math.PI * 2,
             colorPhase: Math.random() * Math.PI * 2
         }));
-    }
-
-    function spawnSmokeParticle(): void {
-        const latestProgress = smokeParticles.length > 0 ? smokeParticles[smokeParticles.length - 1].progress : 1;
-        if (latestProgress < smokeSpacing) {
-            return;
-        }
-
-        smokeParticles = [
-            ...smokeParticles,
-            {
-                id: particleId++,
-                progress: 0,
-                speed: 0.11 + Math.random() * 0.03,
-                size: 18 + Math.random() * 2,
-                driftAmp: 2.5 + Math.random() * 2,
-                driftFreq: 0.35 + Math.random() * 0.35,
-                driftPhase: Math.random() * Math.PI * 2,
-                colorPhase: Math.random() * 0.8
-            }
-        ];
     }
 
     function buildPathLookup(): void {
@@ -162,15 +149,22 @@
         return now - idleStartedAt < idleEmitLimitMs;
     }
 
-    function animate(ts: number): void {
-        if (!lastTs) {
-            lastTs = ts;
+    function startLoop(): void {
+        if (!frameId) {
+            lastTs = 0;
+            frameId = requestAnimationFrame(animate);
         }
+    }
 
-        const dt = (ts - lastTs) / 1000;
+    function animate(ts: number): void {
+        if (!lastTs) lastTs = ts;
+
+        // Cap dt to prevent catch-up storms after tab return
+        const dt = Math.min((ts - lastTs) / 1000, 0.1);
         lastTs = ts;
 
         const step = animationsEnabled ? 1 / 24 : 1 / 4;
+        let dirty = false;
 
         simAccumulator += dt;
         while (simAccumulator >= step) {
@@ -191,23 +185,43 @@
                 if (canEmitSmoke(ts)) {
                     spawnAccumulator += step * emitRate;
                     while (spawnAccumulator >= 1) {
-                        spawnSmokeParticle();
+                        const lastP = smokeParticles.length > 0
+                            ? smokeParticles[smokeParticles.length - 1].progress : 1;
+                        if (lastP >= smokeSpacing && smokeParticles.length < MAX_PARTICLES) {
+                            smokeParticles.push({
+                                id: particleId++,
+                                progress: 0,
+                                speed: 0.11 + Math.random() * 0.03,
+                                size: 18 + Math.random() * 2,
+                                driftAmp: 2.5 + Math.random() * 2,
+                                driftFreq: 0.35 + Math.random() * 0.35,
+                                driftPhase: Math.random() * Math.PI * 2,
+                                colorPhase: Math.random() * 0.8
+                            });
+                        }
                         spawnAccumulator -= 1;
                     }
                 } else {
                     spawnAccumulator = 0;
                 }
-                const nextSmokeParticles: SmokeParticle[] = [];
-                for (const particle of smokeParticles) {
-                    particle.progress += particle.speed * step;
-                    if (particle.progress < 1) {
-                        nextSmokeParticles.push(particle);
+                // Move particles in-place, compact dead ones
+                let writeIdx = 0;
+                for (let i = 0; i < smokeParticles.length; i++) {
+                    smokeParticles[i].progress += smokeParticles[i].speed * step;
+                    if (smokeParticles[i].progress < 1) {
+                        smokeParticles[writeIdx++] = smokeParticles[i];
                     }
                 }
-                smokeParticles = nextSmokeParticles;
+                if (writeIdx < smokeParticles.length) {
+                    smokeParticles.length = writeIdx;
+                }
+                if (smokeParticles.length > 0) dirty = true;
             } else {
                 // Clear any leftover particles from a previous animated session
-                if (smokeParticles.length > 0) smokeParticles = [];
+                if (smokeParticles.length > 0) {
+                    smokeParticles = [];
+                    dirty = true;
+                }
                 // Update static slot colors on a slow cadence
                 staticColorTimer += step;
                 if (staticColorTimer >= staticColorInterval) {
@@ -222,7 +236,21 @@
             simAccumulator -= step;
         }
 
-        frameId = requestAnimationFrame(animate);
+        // Single reactive trigger per frame instead of per sim-step
+        if (dirty) {
+            smokeParticles = smokeParticles;
+        }
+
+        // Stop loop when nothing to animate
+        const hasWork = sceneState === 'smoking'
+            || smokeParticles.length > 0
+            || (animationsEnabled && canEmitSmoke(ts));
+
+        if (hasWork) {
+            frameId = requestAnimationFrame(animate);
+        } else {
+            frameId = 0;
+        }
     }
 
     function triggerSmoke(): void {
@@ -231,6 +259,7 @@
         smokingStartedAt = now;
         burnBlocks = initBurnBlocks();
         smokingElapsedMs = 0;
+        startLoop();
     }
 
     function smokePathTranslateY(progress: number): number {
@@ -256,7 +285,7 @@
             animationsEnabled = false;
         }
         idleStartedAt = performance.now();
-        frameId = requestAnimationFrame(animate);
+        startLoop();
     });
 
     onDestroy(() => {
@@ -403,10 +432,12 @@
         transform-box: fill-box;
         transform-origin: 74% 58%;
         animation: cigaretteNod 3s cubic-bezier(0.2, 0.7, 0.2, 1) 1;
+        will-change: transform;
     }
 
     .scene.smoking svg {
         animation: handPull 3s ease-in-out 1;
+        will-change: transform;
     }
 
     .scene.smoking svg.anim-off {
