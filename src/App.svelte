@@ -50,7 +50,7 @@
     const burnSampleLabelY = 19.273;
     const burnSampleRotateCx = -202.5;
     const burnSampleRotateCy = 330.5;
-    const burnStartX = burnSampleRotateCx - (burnSampleLabelY - burnSampleRotateCy);
+    const burnStartX = burnSampleRotateCx - (burnSampleLabelY - burnSampleRotateCy) + 100;
     const burnY = burnSampleRotateCy + (burnSampleLabelX - burnSampleRotateCx);
     const burnBlocksMax = 9;
     const burnTextStep = 20;
@@ -233,6 +233,11 @@
         smokingElapsedMs = 0;
     }
 
+    function smokePathTranslateY(progress: number): number {
+        // Move smoke stream down by ~80px near origin, fading out along the path
+        return 80 * Math.pow(1 - clamp(progress, 0, 1), 1.35);
+    }
+
     function pointOnSmokePath(progress: number): PathPoint {
         const i = Math.round(clamp(progress, 0, 1) * (pathPoints.length - 1));
         return pathPoints[i];
@@ -265,7 +270,7 @@
         <p>I have quit smoking! Alberto Ferrero, March 2026.</p>
     </hgroup>
 
-    <div class="scene">
+    <div class="scene" class:smoking={sceneState === 'smoking'}>
         <svg
             class:smoking={sceneState === 'smoking'}
             class:anim-off={!animationsEnabled}
@@ -273,34 +278,14 @@
             fill="none"
             viewBox="0 0 1000 1000"
         >
-            <path
-                stroke="currentColor"
-                d="M629.507 751C622.981 791.698 681.304 919.889 695.599 935.277C709.895 950.666 710.879 985.504 709.584 1001"
-            />
-            <path
-                stroke="currentColor"
-                d="M855.897 738C857.425 710.573 859.688 666.334 861 631.429M793 407.412C801.675 385.662 841.438 390.012 848.668 401.612C853.385 409.181 856.564 476.328 858.806 526.307"
-            />
-            <path
-                stroke="currentColor"
-                d="M808 701C803.655 653.218 803.076 586.356 803.655 577.668C804.38 566.808 800.759 411.879 789.897 407.535C779.035 403.191 738.483 393.055 735.586 419.842C732.69 446.629 736.311 571.876 738.483 574.772C740.655 577.668 742.828 668.421 724 683.625"
-            />
-            <path
-                stroke="currentColor"
-                d="M694.316 678.193C702.977 674.724 716.692 679.639 722.466 682.53C738.587 709.272 771.26 764.779 772.993 772.874C775.158 782.993 785.263 842.259 780.933 852.377C776.602 862.496 737.624 856.714 732.571 852.377C727.519 848.041 722.466 792.389 715.97 786.607C709.474 780.824 673.383 712.885 671.218 705.658C669.052 698.43 683.489 682.53 694.316 678.193Z"
-            />
-            <path
-                stroke="currentColor"
-                d="M670.908 703.757C642.034 683.768 617.448 712.926 618.027 729.227C616.868 735.631 652.798 782.836 670.908 805.638C675.012 824.558 684.526 862.837 689.742 864.583C696.261 866.766 720.89 871.133 739 857.306"
-            />
-
+            <path stroke="currentColor" d="M670.908 703.757C642.034 683.768 617.448 712.926 618.027 729.227C616.868 735.631 652.798 782.836 670.908 805.638C675.012 824.558 684.526 862.837 689.742 864.583C696.261 866.766 720.89 871.133 739 857.306"/>
+            <path stroke="currentColor" d="M629.507 751C622.981 791.698 681.304 919.889 695.599 935.277C709.895 950.666 710.879 985.504 709.584 1001"/>
+            <path stroke="currentColor" d="M855.897 738C857.425 710.573 857.493 657.905 858.806 623M793 407.412C801.675 385.662 841.438 390.012 848.668 401.612C853.385 409.181 856.564 476.328 858.806 526.307"/>
+            <path stroke="currentColor" d="M808 701C803.655 653.218 803.076 586.356 803.655 577.668C804.38 566.808 800.759 411.879 789.897 407.535C779.035 403.191 738.483 393.055 735.586 419.842C732.69 446.629 736.311 571.876 738.483 574.772C740.655 577.668 742.828 668.421 724 683.625"/>
+            <path stroke="currentColor" d="M694.316 678.193C702.977 674.724 716.692 679.639 722.466 682.53C738.587 709.272 771.26 764.779 772.993 772.874C775.158 782.993 785.263 842.259 780.933 852.377C776.602 862.496 737.624 856.714 732.571 852.377C727.519 848.041 722.466 792.389 715.97 786.607C709.474 780.824 673.383 712.885 671.218 705.658C669.052 698.43 683.489 682.53 694.316 678.193Z"/>
             <g class="cigarette">
-                <path
-                    stroke="currentColor"
-                    d="M736.915 525H77.9999C48.3999 567.4 65.6666 614 77.9999 632C193.156 631.747 593.278 631.443 736.915 631.353M801.507 525H982.302C1005 571 982.302 632 982.302 632C982.302 632 954.908 632 936.497 631.475M804.41 631.328C836.199 631.323 851.83 631.332 877.711 631.36"
-                />
+                <path stroke="currentColor" d="M736.914 525L180.5 525C150.9 567.4 168.167 604 180.5 622C295.656 621.747 593.277 621.444 736.914 621.353M801.506 525H982.301C1005 571 982.301 622 982.301 622C982.301 622 954.907 622 936.495 621.475M804.409 621.328C836.198 621.323 851.828 621.332 877.709 621.36"/>
             </g>
-
             {#if sceneState === 'smoking'}
                 <g class="burn-layer">
                     {#each burnBlocks.slice(0, burnActiveCountNow) as block, index}
@@ -323,14 +308,12 @@
                     {/each}
                 </g>
             {/if}
-
             <path
                 stroke="currentColor"
                 d="M847.667 1003C848.386 985.814 851.119 949.119 856.298 939.824C862.772 928.205 922.473 867.933 931.105 800.4C939.736 732.866 942.613 712.534 941.894 698.737C941.175 684.939 934.701 587.633 931.105 582.55C927.508 577.467 893.701 570.931 880.754 617.406C870.396 654.586 875 669.69 875 698.737C864.93 724.152 839.754 764.092 834 800.4"
             />
-            <path stroke="currentColor" d="M717 525C721.528 546.177 727.867 597.225 717 632" />
-            <path stroke="currentColor" d="M78 525C91.6667 545 110.8 594.2 78 631" />
-
+            <path stroke="currentColor" d="M717 525C721.528 544.198 727.867 590.475 717 622"/>
+            <path stroke="currentColor" d="M183 525C196.583 543.113 215.6 587.672 183 621"/>
             <g class="smoke-guide" aria-hidden="true">
                 <path
                     bind:this={smokePathEl}
@@ -343,6 +326,7 @@
                 {#if animationsEnabled}
                     {#each smokeParticles as particle (particle.id)}
                         {@const pathPoint = pointOnSmokePath(particle.progress)}
+                        {@const shiftedY = pathPoint.y + smokePathTranslateY(particle.progress)}
                         {@const drift =
                             Math.sin(animPhase * particle.driftFreq * Math.PI * 2 + particle.driftPhase) *
                             particle.driftAmp *
@@ -350,13 +334,13 @@
                         {@const color = smokeColor(particle.progress, particle.colorPhase)}
                         <text
                             x={pathPoint.x + drift}
-                            y={pathPoint.y}
+                            y={shiftedY}
                             fill={color}
                             font-family="monospace"
                             font-size={particle.size}
                             letter-spacing="0em"
                             opacity={smokeOpacity(particle.progress)}
-                            transform={`rotate(${pathPoint.angle + 90} ${pathPoint.x + drift} ${pathPoint.y})`}
+                            transform={`rotate(${pathPoint.angle + 90} ${pathPoint.x + drift} ${shiftedY})`}
                             style="white-space:pre"
                         >
                             {color}
@@ -365,16 +349,17 @@
                 {:else}
                     {#each staticSmokeSlots as slot}
                         {@const pathPoint = pointOnSmokePath(slot.progress)}
+                        {@const shiftedY = pathPoint.y + smokePathTranslateY(slot.progress)}
                         {@const color = smokeColor(slot.progress, slot.colorPhase)}
                         <text
                             x={pathPoint.x}
-                            y={pathPoint.y}
+                            y={shiftedY}
                             fill={color}
                             font-family="monospace"
                             font-size="18"
                             letter-spacing="0em"
                             opacity={smokeOpacity(slot.progress)}
-                            transform={`rotate(${Math.round((pathPoint.angle + 90) / 15) * 15} ${pathPoint.x} ${pathPoint.y})`}
+                            transform={`rotate(${Math.round((pathPoint.angle + 90) / 15) * 15} ${pathPoint.x} ${shiftedY})`}
                             style="white-space:pre"
                         >
                             {color}
@@ -382,31 +367,6 @@
                     {/each}
                 {/if}
             </g>
-
-            <text
-                class="sample-label"
-                xml:space="preserve"
-                fill="#FFD54D"
-                font-family="monospace"
-                font-size="20"
-                letter-spacing="0em"
-                style="white-space:pre"
-                transform={`rotate(90 ${burnSampleRotateCx} ${burnSampleRotateCy})`}
-            >
-                <tspan x={burnSampleLabelX} y={burnSampleLabelY}>#FFD54D</tspan>
-            </text>
-            <text
-                class="sample-label"
-                xml:space="preserve"
-                fill="#646464"
-                font-family="monospace"
-                font-size="20"
-                letter-spacing="0em"
-                style="white-space:pre"
-                transform="rotate(-90 286.5 213.5)"
-            >
-                <tspan x="0" y="19.273">#646464</tspan>
-            </text>
         </svg>
     </div>
 
@@ -439,11 +399,21 @@
         color: var(--fg);
     }
 
-    .scene svg.smoking {
+    .scene.smoking {
+        transform-box: fill-box;
+        transform-origin: 74% 58%;
+        animation: cigaretteNod 3s cubic-bezier(0.2, 0.7, 0.2, 1) 1;
+    }
+
+    .scene.smoking svg {
         animation: handPull 3s ease-in-out 1;
     }
 
-    .scene svg.smoking.anim-off {
+    .scene.smoking svg.anim-off {
+        animation: none;
+    }
+
+    .scene.smoking svg.anim-off .cigarette {
         animation: none;
     }
 
@@ -454,11 +424,6 @@
 
     .smoke-particles,
     .burn-layer {
-        pointer-events: none;
-    }
-
-    .sample-label {
-        opacity: 0;
         pointer-events: none;
     }
 
@@ -478,15 +443,46 @@
         gap: 0.4rem;
         cursor: pointer;
         user-select: none;
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
+    .container:has(> button) {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        flex-wrap: wrap;
     }
 
     button {
-        margin-block: 1rem;
-        padding: 0.5rem 1rem;
+        margin-block: 0.5rem 1rem;
+        padding: 0.7rem 1.35rem;
         cursor: pointer;
         background: var(--btn-bg);
         color: var(--fg);
         border: 1px solid var(--btn-border);
+        border-radius: 0.45rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--btn-border) 60%, transparent);
+        transition: transform 130ms ease, box-shadow 130ms ease, filter 130ms ease;
+    }
+
+    button:hover {
+        transform: translateY(-1px);
+        filter: brightness(1.08);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--btn-border) 80%, transparent), 0 8px 18px color-mix(in srgb, var(--fg) 18%, transparent);
+    }
+
+    button:active {
+        transform: translateY(0);
+        filter: brightness(1);
+    }
+
+    button:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
     }
 
     @keyframes handPull {
@@ -495,6 +491,15 @@
         }
         35%, 65% {
             transform: translateX(56px);
+        }
+    }
+
+    @keyframes cigaretteNod {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+        33%, 76% {
+            transform: rotate(2.8deg);
         }
     }
 </style>
